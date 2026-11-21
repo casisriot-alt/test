@@ -47,10 +47,15 @@ impostazioni); pizzicare e trascinare su un'area vuota scorre la pagina.
 
 La fotocamera nel browser funziona solo su pagine **HTTPS** (o `localhost`).
 
-1. **GitHub Pages (consigliato).** In *Settings → Pages → Source* scegli
-   *GitHub Actions*: il workflow `.github/workflows/pages.yml` pubblica l'app a
-   ogni push su `main` (o manualmente da *Actions → Deploy su GitHub Pages → Run workflow*).
-   Apri l'indirizzo dal telefono e, se vuoi, *Aggiungi a schermata Home*.
+1. **GitHub Pages (consigliato).** In *Settings → Pages* scegli una delle due fonti:
+   - *Deploy from a branch*: il branch con l'app e la cartella `/ (root)`
+     (nessuna build: il file `.nojekyll` fa pubblicare i file così come sono);
+   - *GitHub Actions*: il workflow `.github/workflows/pages.yml` pubblica l'app a
+     ogni push su `main` (o manualmente da *Actions → Deploy su GitHub Pages → Run workflow*).
+
+   L'indirizzo è `https://<utente>.github.io/<repository>/`. Aprilo dal telefono e,
+   se vuoi, *Aggiungi a schermata Home*. (Pages su repository privati richiede un
+   piano GitHub a pagamento.)
 2. **Dal computer, con il ponte PC** (vedi sotto): `npm run bridge` serve l'app in
    HTTPS sulla rete locale e stampa l'indirizzo da aprire sul telefono.
 3. **In locale**: `npm start` e apri `http://localhost:8080` sul computer (la
