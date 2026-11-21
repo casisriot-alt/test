@@ -8,7 +8,7 @@
     "start": "node scripts/serve.mjs 8080",
     "bridge": "node bridge/server.mjs",
     "test": "node --test tests/unit/*.test.mjs",
-    "test:e2e": "node tests/e2e/run.mjs && node tests/e2e/bridge.mjs"
+    "test:e2e": "node tests/e2e/run.mjs && node tests/e2e/robustness.mjs && node tests/e2e/bridge.mjs"
   },
   "engines": {
     "node": ">=20"

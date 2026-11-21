@@ -31,6 +31,15 @@ export default {
           </div>
         </div>
       </div>
+      <details class="card pg-diag" data-ref="diag">
+        <summary>🩺 Diagnostica</summary>
+        <p class="muted pg-diag-help" data-ref="diaghelp">Se la mano non viene riconosciuta, copia questi dati e inviali a chi ti assiste.</p>
+        <pre data-ref="diagtext">Fotocamera spenta.</pre>
+        <div class="pg-diag-actions">
+          <button class="btn btn-small" data-act="copy">📋 Copia</button>
+          <button class="btn btn-small" data-act="delegate">Usa la CPU</button>
+        </div>
+      </details>
       <h3 class="pg-h">Ultimi gesti</h3>
       <ol class="pg-log card" data-ref="log"><li class="muted">Nessun gesto ancora.</li></ol>
       <h3 class="pg-h">Guida</h3>
@@ -52,6 +61,7 @@ export default {
         .join(' · ')}</p>`;
 
     const ref = (n) => view.querySelector(`[data-ref="${n}"]`);
+    this.setupDiagnostics(ref, ctx);
     const bars = Object.fromEntries([...view.querySelectorAll('[data-finger]')].map((b) => [b.dataset.finger, b]));
     this.log = ref('log');
     this.entries = [];
@@ -72,6 +82,65 @@ export default {
       ref('name').textContent = 'Nessuna mano';
       ref('raw').textContent = '—';
       Object.values(bars).forEach((b) => (b.style.width = '0'));
+    });
+  },
+
+  setupDiagnostics(ref, ctx) {
+    const details = ref('diag');
+    const text = ref('diagtext');
+    const help = ref('diaghelp');
+    const delegateBtn = details.querySelector('[data-act="delegate"]');
+    let last = 0;
+    let autoOpened = false;
+    const render = (d) => {
+      const lines = [
+        `stato: ${d.stato} · ${d.delegato} · ingresso ${d.ingresso} · ciclo ${d.ciclo}`,
+        `video: ${d.video} · ${d.fps} fps · ${d.msInferenza} ms/fotogramma`,
+        `fotogrammi analizzati: ${d.fotogrammi} · con una mano: ${d.conMano}`,
+        `luminosità media: ${d.luminosita ?? '?'} / 255 · verifiche CPU: ${d.verificheCpu}`,
+        `errori: ${d.errori}${d.ultimoErrore ? ` (${d.ultimoErrore})` : ''}`,
+        ...d.note.map((n) => `· ${n}`),
+        `browser: ${navigator.userAgent}`,
+      ];
+      text.textContent = lines.join('\n');
+      delegateBtn.textContent = d.delegato === 'GPU' ? 'Usa la CPU' : 'Usa la GPU';
+      let hint = 'Se la mano non viene riconosciuta, copia questi dati e inviali a chi ti assiste.';
+      if (d.fotogrammi === 0) hint = '⚠️ Nessun fotogramma analizzato: la fotocamera non invia immagini.';
+      else if (d.luminosita !== null && d.luminosita <= 2) hint = '⚠️ Le immagini arrivano nere: controlla che la fotocamera non sia coperta o usata da un\'altra app.';
+      else if (d.luminosita !== null && d.luminosita < 40) hint = '💡 Immagine molto scura: aumenta la luce.';
+      else if (d.conMano === 0) hint = '✋ Nessuna mano trovata finora: mostra il palmo aperto a 30–60 cm dalla fotocamera.';
+      help.textContent = hint;
+      // Nothing found after ~5 s of frames: show the diagnostics on their own.
+      if (!autoOpened && d.fotogrammi > 120 && d.conMano === 0) {
+        autoOpened = true;
+        details.open = true;
+      }
+    };
+    ctx.on(this, 'stats', ({ diagnostics }) => {
+      const now = performance.now();
+      if (now - last < 500) return;
+      last = now;
+      render(diagnostics);
+    });
+    details.querySelector('[data-act="copy"]').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(text.textContent);
+        ctx.toast('📋', 'Diagnostica copiata');
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(text);
+        getSelection().removeAllRanges();
+        getSelection().addRange(range);
+        ctx.toast('📋', 'Testo selezionato: copialo');
+      }
+    });
+    delegateBtn.addEventListener('click', async () => {
+      const next = ctx.controller.activeDelegate === 'GPU' ? 'CPU' : 'GPU';
+      ctx.settings.gpu = next === 'GPU';
+      ctx.persist();
+      ctx.toast('⚙️', `Passo a ${next}…`);
+      await ctx.controller.setDelegate(next);
+      ctx.toast('⚙️', `Riconoscimento su ${ctx.controller.activeDelegate}`);
     });
   },
 

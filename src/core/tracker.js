@@ -24,12 +24,12 @@ async function wasmFileset() {
  * CPU when WebGL is not usable.
  * @returns {Promise<{recognizer: GestureRecognizer, delegate: string}>}
  */
-export async function createRecognizer({ numHands = 1, delegate = 'GPU', modelAssetPath = DEFAULT_MODEL } = {}) {
+export async function createRecognizer({ numHands = 1, delegate = 'GPU', modelAssetPath = DEFAULT_MODEL, runningMode = 'VIDEO' } = {}) {
   const fileset = await wasmFileset();
   const make = (d) =>
     GestureRecognizer.createFromOptions(fileset, {
       baseOptions: { modelAssetPath, delegate: d },
-      runningMode: 'VIDEO',
+      runningMode,
       numHands,
       minHandDetectionConfidence: 0.5,
       minHandPresenceConfidence: 0.5,

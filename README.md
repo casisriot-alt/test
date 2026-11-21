@@ -203,6 +203,22 @@ aria (clic sulla calcolatrice, trascinamento dello slider, scorrimento), gli
 esempi d'integrazione e il ponte PC. I landmark usati nei test unitari si
 rigenerano con `node tests/fixtures/generate-landmarks.mjs`.
 
+## Se la mano non viene riconosciuta
+
+L'app si adatta da sola ai problemi più comuni dei browser per telefono:
+
+- passa a MediaPipe una copia del fotogramma su canvas (su Safari il caricamento
+  diretto del video in WebGL può dare immagini nere) e, se anche il canvas
+  risulta nero, prova con il video;
+- se la GPU dà errori, è lenta o non vede mani che la CPU invece trova
+  (verifica periodica sullo stesso fotogramma), passa alla CPU;
+- se il ciclo dei fotogrammi si ferma, lo riavvia con `requestAnimationFrame`.
+
+Nell'app **Prova** la scheda **🩺 Diagnostica** (si apre da sola se dopo qualche
+secondo non è stata trovata nessuna mano) mostra fotogrammi analizzati,
+luminosità, mani trovate, errori e browser; il pulsante **Copia** copia tutto,
+**Usa la CPU / GPU** cambia motore al volo.
+
 ## Limiti noti
 
 - Serve buona luce; controluce e sfondi molto confusi riducono la precisione.

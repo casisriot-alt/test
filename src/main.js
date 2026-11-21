@@ -72,6 +72,7 @@ function persist() {
 const ctx = {
   toast,
   haptic,
+  persist: () => persist(),
   audio: getAudio,
   settings,
   controller,
@@ -323,7 +324,11 @@ function applySettings(changed) {
       .catch((err) => toast('⚠️', err.message));
   }
   if (changed === 'numHands') controller.setNumHands(Number(settings.numHands));
-  if (changed === 'gpu') toast('ℹ️', 'Il cambio di accelerazione vale dal prossimo avvio', 2200);
+  if (changed === 'gpu') {
+    controller.setDelegate(settings.gpu ? 'GPU' : 'CPU').then(() => {
+      if (controller.running) toast('⚙️', `Riconoscimento su ${controller.activeDelegate}`);
+    });
+  }
   if (changed === 'globalCursor' && !pointerEnabled()) airPointer.setVisible(false);
 }
 

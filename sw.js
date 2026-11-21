@@ -2,7 +2,7 @@
 // App code: network first (updates arrive immediately), cache as fallback.
 // Heavy assets (WebAssembly runtime, ML model): cache first.
 
-const VERSION = 'gesto-v1';
+const VERSION = 'gesto-v2';
 const HEAVY = ['vendor/mediapipe/wasm/vision_wasm_internal.wasm', 'vendor/mediapipe/wasm/vision_wasm_internal.js', 'models/gesture_recognizer.task'];
 const SHELL = [
   './',
@@ -35,10 +35,16 @@ const SHELL = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(VERSION)
-      .then((cache) => cache.addAll([...SHELL, ...HEAVY]))
-      .then(() => self.skipWaiting()),
+    (async () => {
+      const cache = await caches.open(VERSION);
+      // Heavy files rarely change: reuse them from a previous version's cache.
+      for (const path of HEAVY) {
+        const old = await caches.match(path);
+        await (old ? cache.put(path, old) : cache.add(path));
+      }
+      await cache.addAll(SHELL.map((p) => new Request(p, { cache: 'no-cache' })));
+      await self.skipWaiting();
+    })(),
   );
 });
 
@@ -72,8 +78,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // App code: always revalidate with the server, so a new version arrives at once.
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: 'no-cache' })
       .then((res) => {
         const copy = res.clone();
         if (res.ok) caches.open(VERSION).then((c) => c.put(request, copy));
