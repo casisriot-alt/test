@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Landmark fixtures</title>
+<script type="module">
+  import { FilesetResolver, GestureRecognizer } from '../../vendor/mediapipe/vision_bundle.mjs';
+  window.runProbe = async (names) => {
+    const fileset = {
+      wasmLoaderPath: new URL('../../vendor/mediapipe/wasm/vision_wasm_internal.js', location.href).href,
+      wasmBinaryPath: new URL('../../vendor/mediapipe/wasm/vision_wasm_internal.wasm', location.href).href,
+    };
+    const rec = await GestureRecognizer.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: '../../models/gesture_recognizer.task', delegate: 'CPU' },
+      runningMode: 'IMAGE', numHands: 2,
+    });
+    const out = {};
+    for (const n of names) {
+      const img = new Image();
+      img.src = 'hands/' + n;
+      await img.decode();
+      const r = rec.recognize(img);
+      out[n] = {
+        width: img.naturalWidth, height: img.naturalHeight,
+        hands: r.landmarks.map((lm, i) => ({
+          landmarks: lm.map(p => [p.x, p.y, p.z]),
+          world: r.worldLandmarks[i].map(p => [p.x, p.y, p.z]),
+          handedness: r.handedness[i][0].categoryName,
+          gesture: r.gestures[i][0].categoryName,
+          score: r.gestures[i][0].score,
+        })),
+      };
+    }
+    return out;
+  };
+  window.probeReady = true;
+</script>

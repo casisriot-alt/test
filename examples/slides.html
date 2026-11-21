@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Esempio · Presentazione con le gesture</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; height: 100dvh; display: grid; place-items: center; background: #0e1118; color: #eef1f7; font: 18px/1.4 system-ui, sans-serif; overflow: hidden; }
+    .slide { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 24px; transition: transform .5s cubic-bezier(.2,.8,.2,1), opacity .5s; }
+    .slide h1 { font-size: clamp(32px, 8vw, 72px); margin: 0 0 12px; }
+    .slide p { color: #98a1b5; margin: 0; }
+    #cam { position: fixed; right: 12px; bottom: 12px; width: 96px; border-radius: 12px; transform: scaleX(-1); opacity: .8; }
+    #start { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 14px 22px; border: 0; border-radius: 14px; background: #5eead4; color: #062a25; font-weight: 700; font-size: 16px; }
+    #info { position: fixed; left: 12px; bottom: 12px; color: #98a1b5; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <section class="slide"><h1>👋 Ciao!</h1><p>Scorri con la mano aperta per cambiare slide.</p></section>
+  <section class="slide"><h1>🧩 25 righe</h1><p>Questa pagina usa direttamente <code>GestureController</code>.</p></section>
+  <section class="slide"><h1>🖐️ Tieni ferma la mano</h1><p>…per tornare alla prima slide.</p></section>
+  <section class="slide"><h1>🎉 Fine</h1><p>Ora prova a integrarlo nella tua app.</p></section>
+  <video id="cam" playsinline muted></video>
+  <button id="start">Avvia la fotocamera</button>
+  <div id="info"></div>
+
+  <script type="module">
+    import { GestureController } from '../src/gesture-control.js';
+
+    const slides = [...document.querySelectorAll('.slide')];
+    let current = 0;
+    const show = (i) => {
+      current = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach((s, j) => {
+        s.style.transform = `translateX(${(j - current) * 100}%)`;
+        s.style.opacity = j === current ? 1 : 0;
+      });
+    };
+    show(0);
+    addEventListener('keydown', (e) => e.key === 'ArrowRight' ? show(current + 1) : e.key === 'ArrowLeft' && show(current - 1));
+
+    const gc = new GestureController({ video: document.getElementById('cam') });
+    gc.on('gesture', ({ id, repeat }) => {
+      if (id === 'swipe_left') show(current + 1);
+      if (id === 'swipe_right') show(current - 1);
+      if (id === 'hold_open_palm' && !repeat) show(0);
+    });
+    gc.on('pose', ({ pose }) => (document.getElementById('info').textContent = `Posa: ${pose}`));
+
+    document.getElementById('start').addEventListener('click', async (e) => {
+      e.target.textContent = 'Avvio…';
+      try {
+        await gc.start();
+        e.target.remove();
+      } catch (err) {
+        e.target.textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esempio · Gesto incorporato in un'altra pagina</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; min-height: 100dvh; background: #10131b; color: #eef1f7; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 20px 16px 360px; }
+    .counter { font-size: 64px; font-weight: 800; text-align: center; margin: 20px 0; }
+    ol { padding-left: 20px; color: #98a1b5; }
+    li.last { color: #5eead4; }
+    iframe { position: fixed; right: 12px; bottom: 12px; width: min(380px, calc(100vw - 24px)); height: 320px; border: 1px solid #2a3142; border-radius: 16px; background: #0e1118; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>La mia app</h1>
+    <p>Questa pagina non contiene codice di riconoscimento: incorpora Gesto in un <code>&lt;iframe allow="camera"&gt;</code> e riceve le gesture con <code>postMessage</code>.</p>
+    <div class="counter" id="counter">0</div>
+    <p>👉 / 👈 cambiano il numero, 👍 tenuto fermo aggiunge 10.</p>
+    <h2>Eventi ricevuti</h2>
+    <ol id="log"></ol>
+  </main>
+  <iframe src="../index.html?app=prova" allow="camera; autoplay" title="Gesto"></iframe>
+  <script>
+    let n = 0;
+    const counter = document.getElementById('counter');
+    const log = document.getElementById('log');
+    window.addEventListener('message', (e) => {
+      const msg = e.data;
+      if (!msg || msg.source !== 'gesto' || msg.type !== 'gesture') return;
+      if (msg.id === 'swipe_right') n++;
+      if (msg.id === 'swipe_left') n--;
+      if (msg.id === 'hold_thumb_up') n += 10;
+      counter.textContent = n;
+      const li = document.createElement('li');
+      li.textContent = `${msg.id}${msg.repeat ? ' (ripetuto)' : ''}`;
+      log.querySelector('.last')?.classList.remove('last');
+      li.className = 'last';
+      log.prepend(li);
+    });
+  </script>
+</body>
+</html>

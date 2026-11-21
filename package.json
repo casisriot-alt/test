@@ -1,0 +1,16 @@
+{
+  "name": "gesture-control",
+  "version": "1.0.0",
+  "description": "Web app per smartphone che riconosce le gesture delle mani dalla fotocamera e le usa per controllare applicazioni.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs 8080",
+    "bridge": "node bridge/server.mjs",
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:e2e": "node tests/e2e/run.mjs && node tests/e2e/bridge.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

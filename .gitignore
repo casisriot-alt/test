@@ -1,0 +1,4 @@
+node_modules/
+bridge/.cert/
+*.y4m
+.DS_Store

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0e1118">
+  <meta name="description" content="Controlla le applicazioni con i gesti della mano, usando la fotocamera dello smartphone. Tutto avviene sul dispositivo.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Gesto · controllo con le mani</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="modulepreload" href="vendor/mediapipe/vision_bundle.mjs">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✋</span> Gesto</div>
+      <div class="status" id="status" aria-live="polite">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-pose" id="status-pose" title="Posa rilevata">·</span>
+        <span class="status-text" id="status-text">Spento</span>
+      </div>
+      <button class="icon-btn" id="btn-settings" aria-label="Impostazioni" title="Impostazioni">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+      </button>
+    </header>
+
+    <main class="stage" id="stage"></main>
+
+    <div class="hints" id="hints" aria-label="Gesti disponibili"></div>
+
+    <nav class="tabbar" id="tabbar" aria-label="Applicazioni"></nav>
+
+    <div class="preview" id="preview" data-air-ignore>
+      <video id="video" playsinline muted autoplay></video>
+      <canvas id="overlay"></canvas>
+      <div class="preview-label" id="preview-label"></div>
+    </div>
+
+    <div class="cursor" id="cursor" aria-hidden="true">
+      <svg viewBox="0 0 48 48"><circle class="cursor-track" cx="24" cy="24" r="20"/><circle class="cursor-progress" id="cursor-progress" cx="24" cy="24" r="20"/></svg>
+      <span class="cursor-dot"></span>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-emoji"></span><span class="toast-text"></span></div>
+
+    <section class="intro" id="intro">
+      <div class="intro-card">
+        <div class="intro-hand" aria-hidden="true">✋</div>
+        <h1>Gesto</h1>
+        <p class="lead">Controlla le app con i movimenti della mano, usando la fotocamera del telefono.</p>
+        <ul class="intro-list">
+          <li><span>👈👉</span> Scorri con la mano aperta per andare avanti e indietro</li>
+          <li><span>🤏</span> Pizzica pollice e indice per cliccare e trascinare</li>
+          <li><span>🖐️👍</span> Tieni ferma una posa per attivare un comando</li>
+        </ul>
+        <p class="privacy">🔒 Le immagini sono elaborate solo sul dispositivo: nulla viene inviato in rete.</p>
+        <button class="btn btn-primary" id="btn-start">Avvia la fotocamera</button>
+        <p class="intro-error" id="intro-error" role="alert"></p>
+        <p class="intro-tip">Consiglio: appoggia il telefono e tieni la mano a 30–60&nbsp;cm dallo schermo, con buona luce.</p>
+      </div>
+    </section>
+
+    <dialog class="sheet" id="settings">
+      <form method="dialog" class="sheet-body" id="settings-form">
+        <header class="sheet-head">
+          <h2>Impostazioni</h2>
+          <button class="icon-btn" value="close" aria-label="Chiudi">✕</button>
+        </header>
+
+        <fieldset>
+          <legend>Fotocamera</legend>
+          <label class="row">Fotocamera
+            <select name="facingMode"><option value="user">Frontale</option><option value="environment">Posteriore</option></select>
+          </label>
+          <label class="row">Mani da seguire
+            <select name="numHands"><option value="1">1</option><option value="2">2</option></select>
+          </label>
+          <label class="row">Accelerazione GPU <input type="checkbox" name="gpu"></label>
+          <label class="row">Mostra anteprima <input type="checkbox" name="showPreview"></label>
+          <label class="row">Mostra scheletro della mano <input type="checkbox" name="showSkeleton"></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Riconoscimento</legend>
+          <label class="row">Sensibilità swipe
+            <select name="swipeSensitivity"><option value="low">Bassa</option><option value="medium">Media</option><option value="high">Alta</option></select>
+          </label>
+          <label class="row">Tempo per "tieni fermo"
+            <select name="holdMs"><option value="500">0,5 s</option><option value="800">0,8 s</option><option value="1200">1,2 s</option></select>
+          </label>
+          <label class="row">Classificatore
+            <select name="classifier"><option value="fusion">Modello + geometria</option><option value="geometric">Solo geometria</option><option value="model">Solo modello</option></select>
+          </label>
+          <label class="row">Cursore con il dito in tutte le app <input type="checkbox" name="globalCursor"></label>
+          <label class="row">Vibrazione al riconoscimento <input type="checkbox" name="haptics"></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Controlla altre applicazioni</legend>
+          <p class="help">Inoltra le gesture riconosciute ad altre app: pagine che incorporano Gesto, altre schede o il computer tramite il ponte <code>bridge/</code>.</p>
+          <label class="row">Invia alle altre schede (BroadcastChannel) <input type="checkbox" name="broadcast"></label>
+          <label class="row">Simula tasti nella pagina <input type="checkbox" name="keyboard"></label>
+          <label class="row stack">Ponte PC (WebSocket)
+            <span class="inline">
+              <input type="url" name="bridgeUrl" placeholder="wss://192.168.1.10:8443/gesto?token=…" inputmode="url" autocomplete="off">
+              <button type="button" class="btn btn-small" id="btn-bridge">Collega</button>
+            </span>
+          </label>
+          <p class="help" id="bridge-status">Non collegato.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Info</legend>
+          <p class="help" id="about"></p>
+          <button type="button" class="btn btn-small" id="btn-stop">Spegni la fotocamera</button>
+        </fieldset>
+      </form>
+    </dialog>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
